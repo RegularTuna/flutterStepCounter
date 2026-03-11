@@ -1,8 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:steps_health/gps_screen.dart';
 import 'package:steps_health/step_counter_screen.dart';
+import 'package:workmanager/workmanager.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+//To allow updates in background
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      Position position = await Geolocator.getCurrentPosition();
+      
+      // 1. Abrir o "baú" de dados
+      final prefs = await SharedPreferences.getInstance();
+      
+      // 2. Ler a lista atual (ou criar uma vazia se não existir)
+      List<String> history = prefs.getStringList('gps_history') ?? [];
+      
+      // 3. Criar a nova linha com a hora e as coordenadas
+      String time = DateTime.now().toString().substring(11, 19); // HH:mm:ss
+      String entry = "$time -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)}";
+      
+      // 4. Adicionar ao início da lista e manter apenas os últimos 10
+      history.insert(0, entry);
+      if (history.length > 10) history.removeLast();
+      
+      // 5. Guardar de volta
+      await prefs.setStringList('gps_history', history);
+      
+      return Future.value(true);
+    } catch (err) {
+      return Future.value(false);
+    }
+  });
+}
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initiate workmanager
+  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   runApp(const MyApp());
 }
 

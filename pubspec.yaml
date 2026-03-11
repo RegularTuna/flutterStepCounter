@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   health: ^13.3.1
   geolocator: ^14.0.2
+  workmanager: ^0.9.0+3
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
