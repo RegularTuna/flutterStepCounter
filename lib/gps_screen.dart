@@ -20,7 +20,7 @@ class _GpsScreenState extends State<GpsScreen> {
   // Read what the workmanager saved
   Future<void> _loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
-    print(_history.toString());
+    
     setState(() {
       _history = prefs.getStringList('gps_history') ?? [];
       

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:steps_health/distance_traveled.dart';
 import 'package:steps_health/gps_screen.dart';
 
 import 'package:workmanager/workmanager.dart';
@@ -37,7 +38,8 @@ void callbackDispatcher() {
       List<String> history = prefs.getStringList('gps_history') ?? [];
       
       // 3. Create a new line with date and coordinates
-      String time = DateTime.now().toString().substring(11, 19); // HH:mm:ss
+      String time = DateTime.now().toString().substring(0, 19); // HH:mm:ss
+      
       String entry = "$time -> Address: $address -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)} \n";
       
       // 4. Add it to the top of the list and keep only the last 10 entries
@@ -47,7 +49,7 @@ void callbackDispatcher() {
       // 5. Saev it
       await prefs.setStringList('gps_history', history);
       
-      print("Histórico atualizado: ${history.first}");
+      
       return Future.value(true);
     } catch (err) {
       return Future.value(false);
@@ -137,7 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: GpsScreen()
+        child: DistanceTravell()
       ),
       
     );
