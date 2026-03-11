@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:steps_health/gps_screen.dart';
-import 'package:steps_health/step_counter_screen.dart';
+
 import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
 
 //To allow updates in background
 @pragma('vm:entry-point')
@@ -12,27 +13,46 @@ void callbackDispatcher() {
     try {
       Position position = await Geolocator.getCurrentPosition();
       
-      // 1. Abrir o "baú" de dados
+      // address translation
+      String address = "Unknown address";
+      try {
+        List<Placemark> placemarks = await placemarkFromCoordinates(
+          position.latitude, 
+          position.longitude
+        );
+        if (placemarks.isNotEmpty) {
+          Placemark place = placemarks[0];
+          address = "${place.street}, ${place.locality}";
+        }
+        
+      } catch (e) {
+        address = "Error obtaining address";
+      }
+
+
+      // 1. Access the data storage
       final prefs = await SharedPreferences.getInstance();
       
-      // 2. Ler a lista atual (ou criar uma vazia se não existir)
+      // 2. Read the current list (or create it )
       List<String> history = prefs.getStringList('gps_history') ?? [];
       
-      // 3. Criar a nova linha com a hora e as coordenadas
+      // 3. Create a new line with date and coordinates
       String time = DateTime.now().toString().substring(11, 19); // HH:mm:ss
-      String entry = "$time -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)}";
+      String entry = "$time -> Address: $address -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)} \n";
       
-      // 4. Adicionar ao início da lista e manter apenas os últimos 10
+      // 4. Add it to the top of the list and keep only the last 10 entries
       history.insert(0, entry);
-      if (history.length > 10) history.removeLast();
+      if (history.length > 20) history.removeLast();
       
-      // 5. Guardar de volta
+      // 5. Saev it
       await prefs.setStringList('gps_history', history);
       
+      print("Histórico atualizado: ${history.first}");
       return Future.value(true);
     } catch (err) {
       return Future.value(false);
     }
+    
   });
 }
 

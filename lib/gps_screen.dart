@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
 
 class GpsScreen extends StatefulWidget {
   const GpsScreen({super.key});
@@ -16,44 +17,49 @@ class _GpsScreenState extends State<GpsScreen> {
 
   List<String> _history = [];
 
-  // Função para ler o que o Workmanager guardou
+  // Read what the workmanager saved
   Future<void> _loadHistory() async {
     final prefs = await SharedPreferences.getInstance();
+    print(_history.toString());
     setState(() {
       _history = prefs.getStringList('gps_history') ?? [];
+      
     });
   }
 
   @override
   void initState() {
+    
+    
     super.initState();
-    // Chamamos a função de verificação assim que o ecrã abre
+    // Check permissions as soon as the screen opens
     _checkPermissionsAndInitBackground();
+    
+    
   }
 
   Future<void> _checkPermissionsAndInitBackground() async {
-    // 1. Verificamos se as permissões básicas já existem
+    // 1. Check basic permissions
     LocationPermission permission = await Geolocator.checkPermission();
 
-    // 2. Se for a primeira vez, pedimos a permissão normal
+    // 2. Ask the permission if it is the first time opening
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
 
-    // 3. Se tivermos a permissão "Durante o Uso", pedimos o upgrade para "Sempre"
-    // No Android 10+, o Workmanager PRECISA do "Sempre" para ler o GPS em background
+    // 3. If we have the permission "while in-use" ask for the "always" so it can be used in the background
     if (permission == LocationPermission.whileInUse) {
       permission = await Geolocator.requestPermission();
     }
 
-    // 4. SÓ registamos a tarefa se o utilizador deu a permissão "Always"
+    // 4. workmanager starts only if we have "always" permission granted
     if (permission == LocationPermission.always) {
       _initBackgroundFetch();
-      print("Workmanager: Registado com sucesso.");
+      print("Workmanager: Successful registered");
     } else {
       setState(() {
         _locationMessage =
-            "O rastreio em background requer a permissão 'Permitir Sempre'.";
+            "Need 'always' permission to run in the background";
       });
     }
   }
@@ -80,9 +86,20 @@ class _GpsScreenState extends State<GpsScreen> {
     try {
       Position position = await _determinePosition();
 
+      // Translate coordinates to actual address
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
       setState(() {
-        _locationMessage =
-            "lat: ${position.latitude}, Long: ${position.longitude}";
+        if (placemarks.isNotEmpty) {
+          Placemark p = placemarks[0];
+          _locationMessage = "${p.street}, ${p.locality}\n${p.country}";
+        } else {
+          _locationMessage =
+              "lat: ${position.latitude}, Long: ${position.longitude}";
+        }
         _isFetching = false;
       });
     } catch (e) {
@@ -93,66 +110,32 @@ class _GpsScreenState extends State<GpsScreen> {
     }
   }
 
+
+  //Manual button
   Future<Position> _determinePosition() async {
-    bool serviceEnabled;
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return Future.error('Location services are disabled.');
+
     LocationPermission permission = await Geolocator.checkPermission();
-
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
-      return Future.error('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      setState(() => _locationMessage = "Permissão básica negada.");
-      
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
     }
-  }
-
-  // PASSO 2: Forçar o pedido de Background (Always)
-  // Se já temos "whileInUse", chamamos o requestPermission NOVAMENTE.
-  // No Android 11+, isto NÃO abre um pop-up, abre as DEFINIÇÕES DO SISTEMA.
-  if (permission == LocationPermission.whileInUse) {
-    print("A pedir upgrade para 'Always'...");
     
-    // IMPORTANTE: No Android, tens de chamar isto para ele abrir as definições
-    permission = await Geolocator.requestPermission();
-    
-    // Se o utilizador voltar da janela de definições sem mudar para "Sempre"
-    if (permission != LocationPermission.always) {
-      setState(() => _locationMessage = "Vá às definições e escolha 'Permitir Sempre'.");
-      
-    }
-  }
-
-  // PASSO 3: Se chegámos aqui com "Always", ligamos o motor
-  if (permission == LocationPermission.always) {
-    _initBackgroundFetch();
-    _loadHistory();
-    setState(() => _locationMessage = "Rastreio de Background Ativo!");
-  }
-
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('Permissões negadas permanentemente.');
+      return Future.error('Location permissions are permanently denied.');
     }
 
     return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high, // Ou .low para poupar bateria
-      ),
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      // Importante para a lista não cortar o ecrã
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -161,29 +144,28 @@ class _GpsScreenState extends State<GpsScreen> {
             const SizedBox(height: 20),
             Text(_locationMessage, textAlign: TextAlign.center),
 
-
-
             FutureBuilder<LocationPermission>(
-            future: Geolocator.checkPermission(),
-            builder: (context, snapshot) {
-              // Se ainda não temos a permissão "Always", mostramos o botão de ajuda
-              if (snapshot.hasData && snapshot.data != LocationPermission.always) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: ElevatedButton.icon(
-                    onPressed: () => Geolocator.openAppSettings(),
-                    icon: const Icon(Icons.settings),
-                    label: const Text("Configurar 'Permitir Sempre'"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.shade100,
-                      foregroundColor: Colors.orange.shade900,
+              future: Geolocator.checkPermission(),
+              builder: (context, snapshot) {
+                // If we don't yet have "always" allowed
+                if (snapshot.hasData &&
+                    snapshot.data != LocationPermission.always) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: ElevatedButton.icon(
+                      onPressed: () => Geolocator.openAppSettings(),
+                      icon: const Icon(Icons.settings),
+                      label: const Text("Configure 'Always allow'"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade100,
+                        foregroundColor: Colors.orange.shade900,
+                      ),
                     ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             const SizedBox(height: 20),
 
             ElevatedButton(
@@ -193,9 +175,9 @@ class _GpsScreenState extends State<GpsScreen> {
 
             const Divider(height: 50, indent: 40, endIndent: 40),
 
-            // SEÇÃO DE HISTÓRICO
+            // Background history
             const Text(
-              "Histórico de Background (15 min):",
+              "Background history (15 min):",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -220,7 +202,7 @@ class _GpsScreenState extends State<GpsScreen> {
             TextButton.icon(
               onPressed: _loadHistory,
               icon: const Icon(Icons.refresh),
-              label: const Text("Atualizar Histórico"),
+              label: const Text("Update History"),
             ),
           ],
         ),
