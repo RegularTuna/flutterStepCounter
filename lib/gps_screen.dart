@@ -73,7 +73,7 @@ class _GpsScreenState extends State<GpsScreen> {
       constraints: Constraints(
         networkType: NetworkType.notRequired, // runs without interner
         requiresBatteryNotLow:
-            true, // Better to save battery but we will lose data (to check)
+            true, // Better to save battery but we will lose data that should be recorded (to check)
       ),
     );
   }
