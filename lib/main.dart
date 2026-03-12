@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:steps_health/distance_traveled.dart';
+import 'package:steps_health/geolocation_screen.dart';
+
 import 'package:steps_health/gps_screen.dart';
+import 'package:steps_health/step_counter_screen.dart';
 
 import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
@@ -136,10 +139,19 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: DistanceTravell()
+      body: SafeArea(
+        child: Center(
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          child: Column(
+            children: [
+              //Expanded(child: DistanceTravell()),
+              //Expanded(child: GpsScreen()),
+              //Expanded(child: StepCounterWidget()),
+              Expanded(child: GeolocationScreen())
+            ],
+          )
+        ),
       ),
       
     );

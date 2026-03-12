@@ -15,26 +15,32 @@ class _StepCounterWidgetState extends State<StepCounterWidget> {
   final Health health = Health(); // Keep instance outside function
 
   Future<void> _fetchStepsOfTheDay() async {
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
+  try {
+    // 1. Define o tipo de dado
+    final types = [HealthDataType.STEPS];
+    
+    // 2. Configura e PEDE autorização (Obrigatório no Android 14+)
     await health.configure();
-    final now = DateTime.now();
-    final midnight = DateTime(now.year, now.month, now.day);
+    bool requested = await health.requestAuthorization(types);
 
-    // This method asks the OS to do the math for you
-    // It returns one single Integer instead of a list of points
-    int? steps = await health.getTotalStepsInInterval(midnight, now);
+    if (requested) {
+      final now = DateTime.now();
+      final midnight = DateTime(now.year, now.month, now.day);
 
-    setState(() {
-      _dailyStepCount = (steps ?? 0).toString();
-      _isLoading = false;
-    });
+      int? steps = await health.getTotalStepsInInterval(midnight, now);
+
+      setState(() {
+        _dailyStepCount = (steps ?? 0).toString();
+      });
+    } else {
+      setState(() => _dailyStepCount = "Permissão negada");
+    }
   } catch (e) {
-    setState(() {
-      _dailyStepCount = "Erro: $e";
-      _isLoading = false;
-    });
+    setState(() => _dailyStepCount = "Erro: $e");
+  } finally {
+    setState(() => _isLoading = false);
   }
 }
 
@@ -42,20 +48,30 @@ Future<void> _fetchStepsOfTheWeek() async {
   setState(() => _isLoading = true);
 
   try {
-    await health.configure();
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
-    int? steps = await health.getTotalStepsInInterval(sevenDaysAgo, now);
+    
+    final types = [HealthDataType.STEPS];
 
-    setState(() {
-      _weeklyStepCount = (steps ?? 0).toString();
-      _isLoading = false;
-    });
+    
+    await health.configure();
+    bool requested = await health.requestAuthorization(types);
+
+    if (requested) {
+      final now = DateTime.now();
+      
+      final sevenDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
+      
+      int? steps = await health.getTotalStepsInInterval(sevenDaysAgo, now);
+
+      setState(() {
+        _weeklyStepCount = (steps ?? 0).toString();
+      });
+    } else {
+      setState(() => _weeklyStepCount = "Permissão negada");
+    }
   } catch (e) {
-    setState(() {
-      _weeklyStepCount = "Erro: $e";
-      _isLoading = false;
-    });
+    setState(() => _weeklyStepCount = "Erro: $e");
+  } finally {
+    setState(() => _isLoading = false);
   }
 }
 
