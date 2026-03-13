@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_background_geolocation/flutter_background_geolocation.dart' as bg;
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
 import 'package:shared_preferences/shared_preferences.dart';
+
+
+
+
 
 class GeolocationScreen extends StatefulWidget {
   const GeolocationScreen({super.key});
@@ -15,68 +20,78 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLogs(); // Carrega o histórico guardado ao iniciar
+    _loadLogs(); // loads history on app start
 
-    // 1. Ouvir eventos de Geofence
+    // 1. Listen to GeoFence events
     bg.BackgroundGeolocation.onGeofence((bg.GeofenceEvent event) {
-      print('[Geofence Event] identifier: ${event.identifier}, action: ${event.action}');
-      
-      // Criar mensagem legível
       String status = event.action == 'ENTER' ? "ENTROU" : "SAIU";
-      _logEvent("$status em ${event.identifier}");
+      String message = "$status em ${event.identifier}";
+
+      // 1. update the local storage so the UI updates immediatly
+      String timestamp = DateTime.now().toString().substring(11, 19);
+      setState(() {
+        _history.insert(0, "$timestamp - $message");
+      });
+
+      // 2. Saves locally
+      _logEvent(message);
     });
 
-    // 2. Configurar o Plugin
-    bg.BackgroundGeolocation.ready(bg.Config(
-      desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-      distanceFilter: 10.0,
-      locationUpdateInterval: 5000, 
-      fastestLocationUpdateInterval: 1000,
-      disableElasticity: true, 
-      geofenceProximityRadius: 1000,
-      enableHeadless: true,
-      stopOnTerminate: false,
-      startOnBoot: true,
-      debug: true, // Sons de debug ativos
-      logLevel: bg.Config.LOG_LEVEL_VERBOSE,
-      reset: true,
-      // Configuração de Notificação para Android (necessário para background estável)
-      notification: bg.Notification(
-        title: "Monitor de Presença Ativo",
-        text: "A monitorizar entrada/saída de zonas.",
+    // 2. Plugin config
+    bg.BackgroundGeolocation.ready(
+      bg.Config(
+        desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
+        distanceFilter: 10.0,
+        locationUpdateInterval: 5000,
+        fastestLocationUpdateInterval: 1000,
+        disableElasticity: true,
+        geofenceProximityRadius: 1000,
+        enableHeadless: true,
+        stopOnTerminate: false,
+        startOnBoot: true,
+        debug: true, // To hear sounds when something happens (just for debug)
+        logLevel: bg.Config.LOG_LEVEL_VERBOSE,
+        reset: true,
+        // Necessary to keep background stable in android
+        notification: bg.Notification(
+          title: "Monitoring presence",
+          text: "Monitoring entries and exits",
+        ),
       ),
-    )).then((bg.State state) {
+    ).then((bg.State state) {
       if (!state.enabled) {
         bg.BackgroundGeolocation.start();
       }
 
-      // 3. Adicionar a Geofence de Oiã
-      bg.BackgroundGeolocation.addGeofence(bg.Geofence(
-        identifier: 'CASA_OIA',
-        radius: 150,
-        latitude: 40.5420,
-        longitude: -8.53364,
-        notifyOnEntry: true,
-        notifyOnExit: true,
-        loiteringDelay: 10000,
-      )).then((bool success) {
+      // 3. Testing for current location
+      bg.BackgroundGeolocation.addGeofence(
+        bg.Geofence(
+          identifier: 'Oia',
+          radius: 150,
+          latitude: 40.5420,
+          longitude: -8.53364,
+          notifyOnEntry: true,
+          notifyOnExit: true,
+          loiteringDelay: 10000,
+        ),
+      ).then((bool success) {
         print('[addGeofence] Sucesso: $success');
       });
     });
   }
 
-  // --- PERSISTÊNCIA DE DADOS ---
+  // --- Data persistance ---
 
   Future<void> _logEvent(String text) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> logs = prefs.getStringList('geo_logs') ?? [];
-    
+
     String timestamp = DateTime.now().toString().substring(11, 19);
     logs.insert(0, "$timestamp - $text");
-    
+
     await prefs.setStringList('geo_logs', logs);
-    
-    // Atualiza a interface apenas se o widget ainda estiver no ecrã
+
+    // Updates UI if the widget is still on screen
     if (mounted) {
       setState(() {
         _history = logs;
@@ -99,21 +114,81 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
     });
   }
 
+
+
+
+
+void _showHistorySheet(BuildContext context) async {
+  // Waits for the updated logs
+  await _loadLogs();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true, 
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return DraggableScrollableSheet(
+        initialChildSize: 0.6, // starts at 60% of the screen
+        maxChildSize: 0.9,    
+        expand: false,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  "Event History",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: _history.isEmpty
+                    ? const Center(child: Text("No logs found."))
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: _history.length,
+                        itemBuilder: (context, index) {
+                          final item = _history[index];
+                          return ListTile(
+                            leading: Icon(
+                              item.contains("ENTROU") ? Icons.login : Icons.logout,
+                              color: item.contains("ENTROU") ? Colors.green : Colors.orange,
+                            ),
+                            title: Text(item),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
   // --- INTERFACE ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Monitor de Presença"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            onPressed: _clearLogs,
-            tooltip: "Limpar Histórico",
-          )
-        ],
-      ),
+  title: const Text("Presence Monitor"),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.history),
+      onPressed: () => _showHistorySheet(context),
+      tooltip: "Show full history",
+    ),
+    IconButton(
+      icon: const Icon(Icons.delete_sweep),
+      onPressed: _clearLogs,
+      tooltip: "Clear history",
+    ),
+  ],
+),
       body: Column(
         children: [
           Container(
@@ -123,11 +198,11 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
             child: Column(
               children: [
                 const Text(
-                  "ZONA: Oiã (Raio: 200m)",
+                  "Geofencing Area",
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  "Status: O motor está a correr em background",
+                  "Running on background",
                   style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
                 ),
               ],
@@ -135,17 +210,20 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
           ),
           Expanded(
             child: _history.isEmpty
-                ? const Center(child: Text("Sem eventos registados ainda."))
+                ? const Center(child: Text("No events yet"))
                 : ListView.separated(
                     itemCount: _history.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = _history[index];
                       final isEntry = item.contains("ENTROU");
-                      
+
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: isEntry ? Colors.green.shade100 : Colors.orange.shade100,
+                          backgroundColor: isEntry
+                              ? Colors.green.shade100
+                              : Colors.orange.shade100,
                           child: Icon(
                             isEntry ? Icons.login : Icons.logout,
                             color: isEntry ? Colors.green : Colors.orange,
@@ -153,7 +231,10 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
                         ),
                         title: Text(
                           item,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       );
                     },

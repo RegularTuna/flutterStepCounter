@@ -9,8 +9,10 @@ import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+    as bg;
 
-//To allow updates in background
+//To allow updates in background for the gps location 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -61,12 +63,38 @@ void callbackDispatcher() {
   });
 }
 
+//geolation in the background
+@pragma('vm:entry-point')
+void backgroundGeolocationHeadlessTask(bg.HeadlessEvent headlessEvent) async {
+  switch (headlessEvent.name) {
+    case bg.Event.GEOFENCE:
+      bg.GeofenceEvent event = headlessEvent.event;
+      print('- Headless Geofence Event: ${event.identifier}, ${event.action}');
+      
+      // Como a app está fechada, não há setState. 
+      // Temos de gravar diretamente no SharedPreferences.
+      final prefs = await SharedPreferences.getInstance();
+      List<String> logs = prefs.getStringList('geo_logs') ?? [];
+      
+      String timestamp = DateTime.now().toString().substring(11, 19);
+      String status = event.action == 'ENTER' ? "ENTROU" : "SAIU";
+      
+      logs.insert(0, "$timestamp - [OFFLINE] $status em ${event.identifier}");
+      await prefs.setStringList('geo_logs', logs);
+      break;
+  }
+}
+
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initiate workmanager
   Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   runApp(const MyApp());
+
+  //Mantains geolocation active even with app closed
+  bg.BackgroundGeolocation.registerHeadlessTask(backgroundGeolocationHeadlessTask);
 }
 
 class MyApp extends StatelessWidget {
