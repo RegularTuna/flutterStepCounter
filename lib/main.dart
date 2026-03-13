@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:steps_health/distance_traveled.dart';
 //import 'package:steps_health/geolocation_screen.dar';
@@ -13,54 +15,82 @@ import 'package:geocoding/geocoding.dart';
 //import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
 //    as bg;
 
-//To allow updates in background for the gps location 
+import 'package:network_info_plus/network_info_plus.dart';
+
+//To allow updates in background for the gps location
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final info = NetworkInfo();
+      final now = DateTime.now();
+
+      // --- 1. LÓGICA WI-FI (PRESENCE & HISTORY) ---
+      try {
+        String todayKey =
+            "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        String? savedHomeBSSID = prefs.getString('home_bssid');
+        String? currentBSSID = await info.getWifiBSSID();
+
+        if (currentBSSID != null && currentBSSID == savedHomeBSSID) {
+          // Carregar mapa de histórico
+          String historyRaw = prefs.getString('home_time_history_map') ?? "{}";
+          Map<String, dynamic> historyMap = jsonDecode(historyRaw);
+
+          // Incrementar tempo
+          int currentMinutes = historyMap[todayKey] ?? 0;
+          historyMap[todayKey] = currentMinutes + 15;
+
+          // Manter apenas últimos 7 dias
+          var dateKeys = historyMap.keys.toList()..sort();
+          if (dateKeys.length > 7) {
+            historyMap.remove(dateKeys.first);
+          }
+
+          // Guardar dados
+          await prefs.setString(
+            'home_time_history_map',
+            jsonEncode(historyMap),
+          );
+          await prefs.setInt('minutes_at_home_today', historyMap[todayKey]);
+        }
+      } catch (e) {
+        print("WiFi background error: $e");
+      }
+
+      // --- 2. LÓGICA GPS (O teu código original) ---
       Position position = await Geolocator.getCurrentPosition();
-      
-      // address translation
       String address = "Unknown address";
+
       try {
         List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude, 
-          position.longitude
+          position.latitude,
+          position.longitude,
         );
         if (placemarks.isNotEmpty) {
           Placemark place = placemarks[0];
           address = "${place.street}, ${place.locality}";
         }
-        
       } catch (e) {
         address = "Error obtaining address";
       }
 
-
-      // 1. Access the data storage
-      final prefs = await SharedPreferences.getInstance();
-      
-      // 2. Read the current list (or create it )
       List<String> history = prefs.getStringList('gps_history') ?? [];
-      
-      // 3. Create a new line with date and coordinates
-      String time = DateTime.now().toString().substring(0, 19); // HH:mm:ss
-      
-      String entry = "$time -> Address: $address -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)} \n";
-      
-      // 4. Add it to the top of the list and keep only the last 10 entries
+      String time = now.toString().substring(0, 19);
+      String entry =
+          "$time -> Address: $address -> Lat: ${position.latitude.toStringAsFixed(4)}, Long: ${position.longitude.toStringAsFixed(4)} \n";
+
       history.insert(0, entry);
       if (history.length > 20) history.removeLast();
-      
-      // 5. Saev it
+
       await prefs.setStringList('gps_history', history);
-      
-      
+
       return Future.value(true);
     } catch (err) {
+      print("Global background error: $err");
       return Future.value(false);
     }
-    
   });
 }
 
@@ -90,13 +120,26 @@ void callbackDispatcher() {
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initiate workmanager
   Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+
+  Workmanager().registerPeriodicTask(
+    "1", // ID
+    "periodicLocationUpdate", // Name
+    frequency: const Duration(minutes: 15), // 15 min is the minimum
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    constraints: Constraints(
+      networkType: NetworkType.notRequired, // runs without interner
+      requiresBatteryNotLow:
+          true, // Better to save battery but we will lose data that should be recorded (to check)
+    ),
+  );
+
   runApp(const MyApp());
 
   //Mantains geolocation active even with app closed
-  //bg.BackgroundGeolocation.registerHeadlessTask(backgroundGeolocationHeadlessTask);
+  //bg.BackgroundGeolocation.registerHeadlessTask(backgroundGeolocationHeadlessTask); **------ uncomment for geocoding
 }
 
 class MyApp extends StatelessWidget {
@@ -149,42 +192,47 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  
-
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: SafeArea(
-        child: Center(
-          // Center is a layout widget. It takes a single child and positions it
-          // in the middle of the parent.
-          child: Column(
-            children: [
-              //Expanded(child: DistanceTravell()),
-              //Expanded(child: GpsScreen()),
-              //Expanded(child: StepCounterWidget()),
-              //Expanded(child: GeolocationScreen()),
-              Expanded(child: WifiConnectionScreen())
-            ],
-          )
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  // Define que o conteúdo deve ter, no mínimo, a altura total do ecrã
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      // Agora podes usar Expanded com flex aqui dentro!
+                      Expanded(flex: 2, child: const GpsScreen()),
+
+                      const Divider(thickness: 2),
+
+                      Expanded(flex: 3, child: const WifiConnectionScreen()),
+
+                      // Se quiseres adicionar os outros, basta descomentar e ajustar o flex
+                      /*
+                    Expanded(
+                      flex: 1,
+                      child: const DistanceTravell(),
+                    ),
+                    */
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
-      
     );
   }
 }

@@ -54,7 +54,7 @@ class _GpsScreenState extends State<GpsScreen> {
 
     // 4. workmanager starts only if we have "always" permission granted
     if (permission == LocationPermission.always) {
-      _initBackgroundFetch();
+      
       print("Workmanager: Successful registered");
     } else {
       setState(() {
@@ -64,19 +64,7 @@ class _GpsScreenState extends State<GpsScreen> {
     }
   }
 
-  void _initBackgroundFetch() {
-    Workmanager().registerPeriodicTask(
-      "1", // ID
-      "periodicLocationUpdate", // Name
-      frequency: const Duration(minutes: 15), // 15 min is the minimum
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(
-        networkType: NetworkType.notRequired, // runs without interner
-        requiresBatteryNotLow:
-            true, // Better to save battery but we will lose data that should be recorded (to check)
-      ),
-    );
-  }
+  
 
   Future<void> _updatePosition() async {
     setState(() {
