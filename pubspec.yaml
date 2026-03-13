@@ -41,6 +41,7 @@ dependencies:
   geocoding: ^4.0.0
   geofencing_api: ^2.0.0
   flutter_background_geolocation: ^5.0.5
+  network_info_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:

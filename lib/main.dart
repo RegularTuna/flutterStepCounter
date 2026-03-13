@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:steps_health/distance_traveled.dart';
-import 'package:steps_health/geolocation_screen.dart';
+//import 'package:steps_health/geolocation_screen.dar';
 
 import 'package:steps_health/gps_screen.dart';
 import 'package:steps_health/step_counter_screen.dart';
+import 'package:steps_health/wifi_connection.dart';
 
 import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
-    as bg;
+//import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
+//    as bg;
 
 //To allow updates in background for the gps location 
 @pragma('vm:entry-point')
@@ -64,17 +65,18 @@ void callbackDispatcher() {
 }
 
 //geolation in the background
-@pragma('vm:entry-point')
-void backgroundGeolocationHeadlessTask(bg.HeadlessEvent headlessEvent) async {
-  switch (headlessEvent.name) {
-    case bg.Event.GEOFENCE:
-      bg.GeofenceEvent event = headlessEvent.event;
-      print('- Headless Geofence Event: ${event.identifier}, ${event.action}');
+/*
+ @pragma('vm:entry-point')
+ void backgroundGeolocationHeadlessTask(bg.HeadlessEvent headlessEvent) async {
+   switch (headlessEvent.name) {
+     case bg.Event.GEOFENCE:
+       bg.GeofenceEvent event = headlessEvent.event;
+       print('- Headless Geofence Event: ${event.identifier}, ${event.action}');
       
-      // Como a app está fechada, não há setState. 
-      // Temos de gravar diretamente no SharedPreferences.
-      final prefs = await SharedPreferences.getInstance();
-      List<String> logs = prefs.getStringList('geo_logs') ?? [];
+       // Como a app está fechada, não há setState. 
+       // Temos de gravar diretamente no SharedPreferences.
+       final prefs = await SharedPreferences.getInstance();
+       List<String> logs = prefs.getStringList('geo_logs') ?? [];
       
       String timestamp = DateTime.now().toString().substring(11, 19);
       String status = event.action == 'ENTER' ? "ENTROU" : "SAIU";
@@ -84,7 +86,7 @@ void backgroundGeolocationHeadlessTask(bg.HeadlessEvent headlessEvent) async {
       break;
   }
 }
-
+*/
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,7 +96,7 @@ void main() {
   runApp(const MyApp());
 
   //Mantains geolocation active even with app closed
-  bg.BackgroundGeolocation.registerHeadlessTask(backgroundGeolocationHeadlessTask);
+  //bg.BackgroundGeolocation.registerHeadlessTask(backgroundGeolocationHeadlessTask);
 }
 
 class MyApp extends StatelessWidget {
@@ -174,9 +176,10 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             children: [
               //Expanded(child: DistanceTravell()),
-              Expanded(child: GpsScreen()),
+              //Expanded(child: GpsScreen()),
               //Expanded(child: StepCounterWidget()),
-              Expanded(child: GeolocationScreen())
+              //Expanded(child: GeolocationScreen()),
+              Expanded(child: WifiConnectionScreen())
             ],
           )
         ),

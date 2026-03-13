@@ -46,7 +46,7 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
         stopOnTerminate: false,
         startOnBoot: true,
         debug: false, // To hear sounds when something happens (just for debug)
-        logLevel: bg.Config.LOG_LEVEL_VERBOSE,
+        logLevel: bg.Config.LOG_LEVEL_VERBOSE, 
         reset: true,
         // Necessary to keep background stable in android
         notification: bg.Notification(
@@ -56,7 +56,7 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
       ),
     ).then((bg.State state) {
       if (!state.enabled) {
-        bg.BackgroundGeolocation.start();
+        bg.BackgroundGeolocation.start(); 
       }
 
       // 3. Testing for current location
