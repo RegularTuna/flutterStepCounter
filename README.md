@@ -1,17 +1,39 @@
 # steps_health
 
-A new Flutter project.
+Flutter app to test sensors.
 
-## Getting Started
+<h2>Steps</h2>
 
-This project is a starting point for a Flutter application.
+Showing daily and weekly steps 
 
-A few resources to get you started if this is your first Flutter project:
+<ins>Libraries used:</ins>
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+https://pub.dev/packages/health
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+<h2>GPS Location</h2>
+
+Acessing the current location in latitude and longitude when a button in clicked and recording it in the background every 15 minutes
+>[!IMPORTANT]
+> For this to work in the background the user must have to manually access permissions settings and set it to "always allow". We can help the user get to the settings with the click of a button (already did) but it must be the user who actually sets the permission.  
+
+> [!WARNING]
+> Battery saver may kill the app in the background. The user must set the app settings to "Unrestricted" manually.
+
+<ins>Libraries used:</ins>
+
+https://pub.dev/packages/geolocator //for the actual gps location  
+https://pub.dev/packages/workmanager //to schedule tasks in the background  
+https://pub.dev/packages/shared_preferences //to use local_storage (might not be needed in the final version)  
+https://pub.dev/packages/geocoding/install  //to translate latitude and logitude in actuall adress names  
+
+
+
+<h2>Geofencing</h2>
+Defining a radius around a specified point and detecting everytime the radius is left or entered.
+
+>[!IMPORTANT]
+> Implemented with a paid plugin (free for testing) that is specificaly optimized to avoid the system shutting down  the app in the background and battery-saving.
+
+<ins>Libraries used:</ins>
+https://pub.dev/packages/flutter_background_geolocation#-using-the-plugin // geofencing ($\color{red}{\textsf{Not-free}}$)
+https://pub.dev/packages/shared_preferences //to use local_storage (might not be needed in the final version)  
