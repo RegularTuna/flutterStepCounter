@@ -28,5 +28,12 @@ https://pub.dev/packages/geocoding/install  //to translate latitude and logitude
 
 
 
+<h2>Geofencing</h2>
+Defining a radius around a specified point and detecting everytime the radius is left or entered.
 
+>[!IMPORTANT]
+> Implemented with a paid plugin (free for testing) that is specificaly optimized to avoid the system shutting down  the app in the background and battery-saving.
 
+<ins>Libraries used:</ins>
+https://pub.dev/packages/flutter_background_geolocation#-using-the-plugin // geofencing ($\color{red}{\textsf{Not-free}}$)
+https://pub.dev/packages/shared_preferences //to use local_storage (might not be needed in the final version)  
