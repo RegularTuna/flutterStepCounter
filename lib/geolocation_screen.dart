@@ -45,7 +45,7 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
         enableHeadless: true,
         stopOnTerminate: false,
         startOnBoot: true,
-        debug: true, // To hear sounds when something happens (just for debug)
+        debug: false, // To hear sounds when something happens (just for debug)
         logLevel: bg.Config.LOG_LEVEL_VERBOSE,
         reset: true,
         // Necessary to keep background stable in android
