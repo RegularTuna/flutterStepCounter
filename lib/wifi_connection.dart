@@ -142,6 +142,8 @@ class _WifiConnectionScreenState extends State<WifiConnectionScreen> {
 
                   return ListView.builder(
                     itemCount: snapshot.data!.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (context, index) {
                       final entry = snapshot.data![index];
                       final totalMinutes = entry.value;

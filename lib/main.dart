@@ -199,39 +199,15 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  // Define que o conteúdo deve ter, no mínimo, a altura total do ecrã
-                  minHeight: constraints.maxHeight,
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    children: [
-                      // Agora podes usar Expanded com flex aqui dentro!
-                      Expanded(flex: 2, child: const GpsScreen()),
-
-                      const Divider(thickness: 2),
-
-                      Expanded(flex: 3, child: const WifiConnectionScreen()),
-
-                      // Se quiseres adicionar os outros, basta descomentar e ajustar o flex
-                      /*
-                    Expanded(
-                      flex: 1,
-                      child: const DistanceTravell(),
-                    ),
-                    */
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
+      body: PageView(
+        scrollDirection: Axis.vertical, // Scroll de cima para baixo
+        children: const [
+          // Cada um destes ocupará o ecrã inteiro automaticamente
+          GpsScreen(),
+          WifiConnectionScreen(),
+          DistanceTravell(),
+          StepCounterWidget(),
+        ],
       ),
     );
   }
