@@ -3,10 +3,6 @@ import 'package:flutter_background_geolocation/flutter_background_geolocation.da
     as bg;
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-
-
-
 class GeolocationScreen extends StatefulWidget {
   const GeolocationScreen({super.key});
 
@@ -64,7 +60,8 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
       }
 
       // 3. Testing for current location
-      bg.BackgroundGeolocation.addGeofence(
+
+      /*bg.BackgroundGeolocation.addGeofence(
         bg.Geofence(
           identifier: 'Oia',
           radius: 150,
@@ -76,7 +73,7 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
         ),
       ).then((bool success) {
         print('[addGeofence] Sucesso: $success');
-      });
+      });*/
     });
   }
 
@@ -114,83 +111,139 @@ class _GeolocationScreenState extends State<GeolocationScreen> {
     });
   }
 
+  void _showHistorySheet(BuildContext context) async {
+    // Waits for the updated logs
+    await _loadLogs();
 
-
-
-
-void _showHistorySheet(BuildContext context) async {
-  // Waits for the updated logs
-  await _loadLogs();
-
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true, 
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
-    builder: (context) {
-      return DraggableScrollableSheet(
-        initialChildSize: 0.6, // starts at 60% of the screen
-        maxChildSize: 0.9,    
-        expand: false,
-        builder: (context, scrollController) {
-          return Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  "Event History",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6, // starts at 60% of the screen
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text(
+                    "Event History",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              const Divider(),
-              Expanded(
-                child: _history.isEmpty
-                    ? const Center(child: Text("No logs found."))
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: _history.length,
-                        itemBuilder: (context, index) {
-                          final item = _history[index];
-                          return ListTile(
-                            leading: Icon(
-                              item.contains("ENTROU") ? Icons.login : Icons.logout,
-                              color: item.contains("ENTROU") ? Colors.green : Colors.orange,
-                            ),
-                            title: Text(item),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+                const Divider(),
+                Expanded(
+                  child: _history.isEmpty
+                      ? const Center(child: Text("No logs found."))
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: _history.length,
+                          itemBuilder: (context, index) {
+                            final item = _history[index];
+                            return ListTile(
+                              leading: Icon(
+                                item.contains("ENTROU")
+                                    ? Icons.login
+                                    : Icons.logout,
+                                color: item.contains("ENTROU")
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                              title: Text(item),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  //set location manually
+
+  final TextEditingController _lat = TextEditingController();
+  final TextEditingController _long = TextEditingController();
+
+  String _storedLat = "";
+  String _storedLong = "";
+
+  void _updateGeofenceManually() {
+    // 1. Converter o texto dos controllers para Double
+    double? lat = double.tryParse(_lat.text);
+    double? long = double.tryParse(_long.text);
+
+    if (lat == null || long == null) {
+      print("Erro: Coordenadas inválidas");
+      return;
+    }
+
+    // 2. Remover a geofence antiga (opcional, para não acumular)
+    bg.BackgroundGeolocation.removeGeofence("CASA_OIA").then((success) {
+      // 3. Adicionar a nova geofence com as coordenadas do utilizador
+      bg.BackgroundGeolocation.addGeofence(
+        bg.Geofence(
+          identifier: 'CASA_OIA',
+          radius: 200, // Recomendo 200 para evitar o erro que vimos antes
+          latitude: lat,
+          longitude: long,
+          notifyOnEntry: true,
+          notifyOnExit: true,
+        ),
+      ).then((bool success) {
+        print('[addGeofence] Nova localização manual definida: $success');
+        _logEvent("Nova Geofence em: $lat, $long");
+      });
+    });
+  }
+
   // --- INTERFACE ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: const Text("Presence Monitor"),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.history),
-      onPressed: () => _showHistorySheet(context),
-      tooltip: "Show full history",
-    ),
-    IconButton(
-      icon: const Icon(Icons.delete_sweep),
-      onPressed: _clearLogs,
-      tooltip: "Clear history",
-    ),
-  ],
-),
+        title: const Text("Presence Monitor"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => _showHistorySheet(context),
+            tooltip: "Show full history",
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            onPressed: _clearLogs,
+            tooltip: "Clear history",
+          ),
+        ],
+      ),
       body: Column(
         children: [
+          Column(
+            children: [
+              TextField(
+                controller: _lat,
+                decoration: InputDecoration(labelText: 'Latitude (ex: 40.54)'),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              TextField(
+                controller: _long,
+                decoration: InputDecoration(labelText: 'Longitude (ex: -8.53)'),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              ElevatedButton(
+                onPressed: _updateGeofenceManually,
+                child: Text("Define new Geofence"),
+              ),
+            ],
+          ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),

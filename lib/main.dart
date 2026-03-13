@@ -174,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             children: [
               //Expanded(child: DistanceTravell()),
-              //Expanded(child: GpsScreen()),
+              Expanded(child: GpsScreen()),
               //Expanded(child: StepCounterWidget()),
               Expanded(child: GeolocationScreen())
             ],
