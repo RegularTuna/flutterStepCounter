@@ -4,6 +4,7 @@ import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_activity_recognition/models/activity_permission.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:health/health.dart';
+import 'package:steps_health/utils/database_helper.dart';
 
 // 1. O Ponto de Entrada (Fora de qualquer classe)
 @pragma('vm:entry-point')
@@ -16,16 +17,36 @@ class MyMotionHandler extends TaskHandler {
 
   StreamSubscription<Activity>? _activitySubscription;
 
+  String? _currentActivity;
+  DateTime? _startTime;
   
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
-    print('Serviço iniciado em background');
+    
 
     // Iniciamos o stream aqui para que ele viva no processo de background
     _activitySubscription = FlutterActivityRecognition.instance.activityStream
         .handleError((error) => print('Erro no sensor background: $error'))
-        .listen((activity) {
+        .listen((activity) async{
       
+
+      final now  = DateTime.now();
+      final String newActivity = activity.type.name;
+
+      // Se a atividade mudou (ex: de STILL para WALKING)
+      if (_currentActivity != null && _currentActivity != newActivity) {
+        // Grava a sessão que acabou de terminar
+        await DbHelper.insertSession(_currentActivity!, _startTime!, now);
+        
+        // Inicia a nova sessão
+        _startTime = now;
+        _currentActivity = newActivity;
+      }else if (_currentActivity == null) {
+        _currentActivity = newActivity;
+        _startTime = now;
+      }
+
+
       // 1. ATUALIZA A NOTIFICAÇÃO EM TEMPO REAL
       FlutterForegroundTask.updateService(
         notificationTitle: 'Monitorização Ativa',

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_activity_recognition/models/activity_permission.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:steps_health/activity_history.dart';
 
 import 'package:steps_health/utils/foreground_impl.dart';
 
@@ -93,8 +94,7 @@ void _onError(dynamic error) {
     final String activityName = _activity?.type.name.toUpperCase() ?? "RETRIEVING...";
     return Scaffold(
       appBar: AppBar(title: Text("Health Tracker")),
-      body: Center(
-        child: Column(
+      body:Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text("Current Status:", style: TextStyle(color: Colors.grey)),
@@ -102,8 +102,9 @@ void _onError(dynamic error) {
               activityName, 
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue)
             ),
+            Expanded(child: ActivityHistory())
           ],
-        ),
+        
       ),
     );
   }
