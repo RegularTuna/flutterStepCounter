@@ -43,6 +43,8 @@ dependencies:
   flutter_background_geolocation: ^5.0.5
   network_info_plus: ^7.0.0
   connectivity_plus: ^7.0.0
+  flutter_activity_recognition: ^4.0.0
+  flutter_foreground_task: ^9.2.1
 
 dev_dependencies:
   flutter_test:

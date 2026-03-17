@@ -13,10 +13,28 @@
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+<!-- ActivityRecognition-->
+<uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+<uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
+
+<!-- Foreground service -->
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+<uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+
+
     <application
         android:label="steps_health"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <service 
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="health|location" 
+            android:exported="false" /><!-- FOREGROUND SERVICE -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

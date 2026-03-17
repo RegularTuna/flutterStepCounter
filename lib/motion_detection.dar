@@ -1,0 +1,168 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
+
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+
+@pragma('vm:entry-point')
+void startCallback() {
+  // Define o que o serviço vai fazer
+  FlutterForegroundTask.setTaskHandler(MotionTaskHandler());
+}
+
+class MotionTaskHandler extends TaskHandler {
+  StreamSubscription<Activity>? _activitySubscription;
+
+  @override
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    // Quando o serviço inicia, começamos a ouvir o movimento
+    _activitySubscription = FlutterActivityRecognition.instance.activityStream
+        .listen((activity) {
+          // 1. Atualiza a notificação para o utilizador ver o estado atual
+          FlutterForegroundTask.updateService(
+            notificationTitle: 'Monitorização Ativa',
+            notificationText: 'Atividade: ${activity.type.name}',
+          );
+
+          // 2. Envia os dados para a UI (se a app estiver aberta)
+          FlutterForegroundTask.sendDataToMain(activity.toJson());
+
+          
+        });
+  }
+
+  @override
+  void onRepeatEvent(DateTime timestamp) {
+    // Evento cíclico (ex: a cada 5 segundos) se precisares
+  }
+
+  @override
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    await _activitySubscription?.cancel();
+  }
+}
+
+class MotionDetection extends StatefulWidget {
+  const MotionDetection({super.key});
+
+  @override
+  State<MotionDetection> createState() => _MotionDetectionState();
+}
+
+class _MotionDetectionState extends State<MotionDetection> {
+  StreamSubscription<Activity>? _activitySubscription;
+  Activity? _activity;
+
+  Future<bool> _checkAndRequestPermission() async {
+    ActivityPermission permission = await FlutterActivityRecognition.instance
+        .checkPermission();
+    if (permission == ActivityPermission.PERMANENTLY_DENIED) {
+      // permission has been permanently denied.
+      return false;
+    } else if (permission == ActivityPermission.DENIED) {
+      permission = await FlutterActivityRecognition.instance
+          .requestPermission();
+      if (permission != ActivityPermission.GRANTED) {
+        // permission is denied.
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  Future<void> _subscribeActivityStream() async {
+    if (await _checkAndRequestPermission()) {
+      _activitySubscription = FlutterActivityRecognition.instance.activityStream
+          .handleError(_onError)
+          .listen(_onActivity);
+    }
+  }
+
+  void _onActivity(Activity activity) {
+    setState(() {
+      _activity = activity;
+    });
+  }
+
+  void _onError(dynamic error) {
+    print('error >> $error');
+  }
+
+  void _initService() {
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'health_monitor',
+      channelName: 'Monitorização de Saúde Mental',
+      channelDescription: 'Monitoriza padrões de atividade física diariamente.',
+      channelImportance: NotificationChannelImportance.DEFAULT,
+      
+      priority: NotificationPriority.LOW,
+    ),
+    iosNotificationOptions: const IOSNotificationOptions(
+      showNotification: false,
+    ),
+    foregroundTaskOptions: ForegroundTaskOptions(
+      eventAction: ForegroundTaskEventAction.repeat(5000), // Executa onRepeatEvent a cada 5s
+      autoRunOnBoot: true,
+      autoRunOnMyPackageReplaced: true,
+      allowWakeLock: true,
+      allowWifiLock: true,
+    ),
+  );
+}
+
+  @override
+void initState() {
+  super.initState(); // Sempre primeiro
+  
+  _initService();
+
+  // 1. Ouve os dados vindos do Background
+  FlutterForegroundTask.addTaskDataCallback(_onReceiveTaskData);
+
+  // 2. Verifica permissões e inicia
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    await _requestNotificationPermission();
+    await _startForegroundService();
+  });
+}
+
+// Função separada para limpar o código
+void _onReceiveTaskData(Object data) {
+  if (data is Map<String, dynamic> && mounted) { // Adiciona o && mounted
+    setState(() {
+      _activity = Activity.fromJson(data);
+    });
+    print("UI Atualizada: ${_activity?.type.name}");
+  }
+}
+
+Future<void> _requestNotificationPermission() async {
+  // O plugin tem um método próprio para isto
+  final notificationPermission = await FlutterForegroundTask.checkNotificationPermission();
+  if (notificationPermission != NotificationPermission.granted) {
+    await FlutterForegroundTask.requestNotificationPermission();
+  }
+}
+
+Future<void> _startForegroundService() async {
+  // Verifica se o serviço já está a correr para não criar duplicados
+  if (await FlutterForegroundTask.isRunningService) {
+    await FlutterForegroundTask.restartService();
+  } else {
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'Monitorização de Bem-estar',
+      notificationText: 'A analisar padrões de atividade...',
+      callback: startCallback, // Certifica-te que esta função existe fora da classe
+    );
+  }
+}
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+    "Atividade: ${_activity?.type.toString() ?? 'A carregar...'}\n"
+    "Confiança: ${_activity?.confidence.toString() ?? '---'}",
+  );
+  }
+}
