@@ -6,7 +6,7 @@ class DbHelper {
 
   static Future<Database> get database async {
     if (_db != null) return _db!;
-    
+
     _db = await openDatabase(
       join(await getDatabasesPath(), 'health_tracker.db'),
       onCreate: (db, version) {
@@ -24,11 +24,14 @@ class DbHelper {
     return _db!;
   }
 
-  // --- O MÉTODO QUE ESTAVA A FALTAR ---
-  static Future<void> insertSession(String type, DateTime start, DateTime end) async {
+  static Future<void> insertSession(
+    String type,
+    DateTime start,
+    DateTime end,
+  ) async {
     final db = await database;
     final int duration = end.difference(start).inSeconds;
-    
+
     // Ignora micro-sessões de menos de 2 segundos (ruído do sensor)
     if (duration < 2) return;
 
@@ -41,9 +44,34 @@ class DbHelper {
     print("Sessão gravada: $type por ${duration}s");
   }
 
-  // Método para ler o histórico (útil para a tua UI)
-  static Future<List<Map<String, dynamic>>> getHistory() async {
+  // Método para ler o histórico
+  static Future<List<Map<String, dynamic>>> getHistory({int limit = 50}) async {
     final db = await database;
-    return await db.query('activity_logs', orderBy: 'start_time DESC');
+    return await db.query(
+      'activity_logs',
+      orderBy: 'start_time DESC',
+      limit: limit,
+    );
+  }
+
+  //Métod para retornar stats diarios
+  static Future<Map<String, int>> getDailyStats() async {
+    final db = await database;
+
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT type, SUM(duration_seconds) as total
+      FROM activity_logs
+      WHERE start_time LIKE ? 
+      GROUP BY type
+      ''',
+      ['$today%'],
+    );
+
+    return {
+      for (var item in results) item['type'] as String: item['total'] as int,
+    };
   }
 }

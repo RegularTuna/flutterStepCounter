@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_activity_recognition/models/activity_permission.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:steps_health/activityType/DailySummary.dart';
 import 'package:steps_health/activity_history.dart';
 
 import 'package:steps_health/utils/foreground_impl.dart';
@@ -98,6 +99,9 @@ void _onError(dynamic error) {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text("Current Status:", style: TextStyle(color: Colors.grey)),
+            Divider(),
+            Dailysummary(),
+            Divider(),
             Text(
               activityName, 
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue)

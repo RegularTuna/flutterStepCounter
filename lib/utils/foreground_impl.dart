@@ -81,7 +81,7 @@ class ForegroundServiceManager {
       androidNotificationOptions: AndroidNotificationOptions(
         channelId: 'health_monitor_channel',
         channelName: 'Monitorização Ativa',
-        channelDescription: 'Este serviço permite monitorizar a sua saúde mental.',
+        channelDescription: 'Activity tracker',
         channelImportance: NotificationChannelImportance.DEFAULT,
         priority: NotificationPriority.HIGH,
         visibility: NotificationVisibility.VISIBILITY_PUBLIC,
