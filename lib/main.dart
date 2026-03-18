@@ -8,8 +8,10 @@ import 'package:steps_health/distance_traveled.dart';
 
 import 'package:steps_health/gps_screen.dart';
 import 'package:steps_health/activityType/motion_detection.dart';
+import 'package:steps_health/stats_usage.dart' as usage;
 import 'package:steps_health/step_counter_screen.dart';
 import 'package:steps_health/wifi_connection.dart';
+import 'package:usage_stats_new/usage_stats.dart' hide NetworkInfo, NetworkType;
 
 import 'package:workmanager/workmanager.dart';
 import 'package:geolocator/geolocator.dart';
@@ -190,8 +192,12 @@ class _MyHomePageState extends State<MyHomePage> {
               child: StepCounterWidget(),
             ),
             Padding(
-              padding: EdgeInsets.all(8.0),
+              padding: EdgeInsets.all(16.0),
               child: MotionDetection(),
+            ),
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: usage.UsageStatsState(),
             ),
           ],
         ),
