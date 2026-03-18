@@ -7,7 +7,7 @@ import 'package:steps_health/distance_traveled.dart';
 //import 'package:steps_health/geolocation_screen.dar';
 
 import 'package:steps_health/gps_screen.dart';
-import 'package:steps_health/motion_detection.dart';
+import 'package:steps_health/activityType/motion_detection.dart';
 import 'package:steps_health/step_counter_screen.dart';
 import 'package:steps_health/wifi_connection.dart';
 

@@ -4,7 +4,7 @@ import 'package:flutter_activity_recognition/flutter_activity_recognition.dart';
 import 'package:flutter_activity_recognition/models/activity_permission.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:health/health.dart';
-import 'package:steps_health/utils/database_helper.dart';
+import 'package:steps_health/activityType/database_helper.dart';
 
 // 1. O Ponto de Entrada (Fora de qualquer classe)
 @pragma('vm:entry-point')

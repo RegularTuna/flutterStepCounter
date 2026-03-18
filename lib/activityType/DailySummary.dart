@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:steps_health/utils/database_helper.dart';
+import 'package:steps_health/activityType/database_helper.dart';
 
 class Dailysummary extends StatelessWidget {
   const Dailysummary({super.key});
