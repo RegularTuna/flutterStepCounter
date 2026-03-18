@@ -21,6 +21,7 @@ class Dailysummary extends StatelessWidget {
               _buildStatItem("Walking", stats['WALKING'] ?? 0, Colors.green),
               _buildStatItem("Running", stats['RUNNING'] ?? 0, Colors.orange),
               _buildStatItem("Still", stats['STILL'] ?? 0, Colors.blueGrey),
+              _buildStatItem("Vehicle", stats['IN_VEHICLE'] ?? 0, Colors.blueGrey),
             ],
           ),
         );

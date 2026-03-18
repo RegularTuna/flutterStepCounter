@@ -17,6 +17,7 @@ class DbHelper {
           "start_time TEXT, "
           "end_time TEXT, "
           "duration_seconds INTEGER)",
+          
         );
       },
       version: 2,

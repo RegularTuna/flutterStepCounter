@@ -21,7 +21,7 @@ class ActivityHistory extends StatelessWidget {
           itemBuilder: (context, index) {
             final log = logs[index];
             return ListTile(
-              leading: const Icon(Icons.history),
+              leading: _getIcon(log['type']),
               title: Text(log['type']),
               subtitle: Text("Duração: ${log['duration_seconds']}s"),
               trailing: Text(log['start_time'].toString().substring(11, 16)), // HH:mm
@@ -37,6 +37,7 @@ class ActivityHistory extends StatelessWidget {
       case 'WALKING': return Icon(Icons.directions_walk, color: Colors.green);
       case 'RUNNING': return Icon(Icons.directions_run, color: Colors.orange);
       case 'STILL': return Icon(Icons.accessibility_new, color: Colors.blueGrey);
+      case 'IN_VEHICLE': return Icon(Icons.card_travel, color: Colors.blueGrey);
       default: return Icon(Icons.help_outline);
     }
   }
