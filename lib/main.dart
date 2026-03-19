@@ -10,6 +10,7 @@ import 'package:steps_health/gps_screen.dart';
 import 'package:steps_health/activityType/motion_detection.dart';
 import 'package:steps_health/stats_usage.dart' as usage;
 import 'package:steps_health/step_counter_screen.dart';
+import 'package:steps_health/typing_speed.dart';
 import 'package:steps_health/wifi_connection.dart';
 import 'package:usage_stats_new/usage_stats.dart' hide NetworkInfo, NetworkType;
 
@@ -184,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
           scrollDirection: Axis.vertical, // Scroll de cima para baixo
           children: [
             // Cada um destes ocupará o ecrã inteiro automaticamente
-            Padding(padding: EdgeInsets.all(8.0), child: GpsScreen()),
+            /* Padding(padding: EdgeInsets.all(8.0), child: GpsScreen()),
             Padding(padding: EdgeInsets.all(8.0), child: WifiConnectionScreen()),
             Padding(padding: EdgeInsets.all(8.0), child: DistanceTravell()),
             Padding(
@@ -198,6 +199,10 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: EdgeInsets.all(8.0),
               child: usage.UsageStatsState(),
+            ), */
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: TypingSpeed(),
             ),
           ],
         ),
