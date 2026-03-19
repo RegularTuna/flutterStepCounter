@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:steps_health/utils/database_helper.dart'; // Ajusta o path se necessário
-import 'package:intl/intl.dart'; // Opcional: para formatar horas (flutter pub add intl)
+import 'package:steps_health/activityType/database_helper.dart'; // Ajusta o path se necessário
+
 
 class ActivityHistory extends StatelessWidget {
   @override

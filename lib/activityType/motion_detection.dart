@@ -7,7 +7,7 @@ import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:steps_health/activityType/DailySummary.dart';
 import 'package:steps_health/activity_history.dart';
 
-import 'package:steps_health/utils/foreground_impl.dart';
+import 'package:steps_health/activityType/foreground_impl.dart';
 
 class MotionDetection extends StatefulWidget {
   @override
