@@ -12,6 +12,7 @@ class UsageStatsState extends StatefulWidget {
 class _UsageStatsStateState extends State<UsageStatsState> {
   List<usage.UsageInfo> _usageStats = [];
   double _totalCommunicationMinutes = 0.0;
+  double _totalPhoneMinutes = 0.0;
 
   @override
   void initState() {
@@ -27,107 +28,139 @@ class _UsageStatsStateState extends State<UsageStatsState> {
     }
 
     DateTime now = DateTime.now();
-
-    // Define o início como sendo hoje às 00:00:00
     DateTime startDate = DateTime(now.year, now.month, now.day);
     DateTime endDate = now;
 
-    List<usage.UsageInfo> stats = await usage.UsageStats.queryUsageStats(
-      startDate,
-      endDate,
-    );
+    List<usage.UsageInfo> stats = await usage.UsageStats.queryUsageStats(startDate, endDate);
 
     List<String> communicationApps = [
-      'com.whatsapp',
-      'com.facebook.orca',
-      'org.telegram.messenger',
-      'com.instagram.android',
-      'com.google.android.apps.messaging',
-      'com.android.server.telecom',
-      'com.discord',
-      'com.google.android.apps.messaging', // SMS Padrão Google
-      'com.android.mms',                   // SMS Padrão Antigo
-      'com.google.android.dialer',          // App de Telefone (Google/Pixel)
-      'com.android.server.telecom',         // Gestor de chamadas do sistema
-      'com.samsung.android.messaging',      // Se o paciente usar Samsung
+      'com.whatsapp', 'com.facebook.orca', 'org.telegram.messenger',
+      'com.instagram.android', 'com.discord', 'com.google.android.apps.messaging',
+      'com.android.mms', 'com.google.android.dialer', 'com.android.server.telecom',
+      'com.samsung.android.messaging',
     ];
 
-    // 2. Filtrmos a lista de stats
-    List<usage.UsageInfo> onlyCommunicationStats = stats.where((info) {
-      // Regra 1: Tem de ser uma app da nossa lista de comunicação
-      bool isComm = communicationApps.contains(info.packageName);
+    Map<String, int> groupedUsage = {};
 
-      // Tem de ter mais de 0 minutos de uso
-      bool hasTime = int.parse(info.totalTimeInForeground ?? '0') > 0;
+    for (var info in stats) {
+      String pkg = info.packageName ?? "unknown";
+      int timeMs = int.parse(info.totalTimeInForeground ?? '0');
+      
+      if (timeMs > 0) {
+        // EM VEZ DE SOMAR (+), verificamos qual é o maior valor registado
+        // O Android UsageStats já guarda o acumulado no totalTimeInForeground
+        if (!groupedUsage.containsKey(pkg) || timeMs > groupedUsage[pkg]!) {
+          groupedUsage[pkg] = timeMs;
+        }
+      }
+    }
 
-      return isComm && hasTime;
-    }).toList();
+    // 2. AGORA CALCULAMOS OS TOTAIS COM OS VALORES ÚNICOS
+    double totalSumMs = 0;
+    double commSumMs = 0;
+    List<usage.UsageInfo> commList = [];
 
-    //Ordenamos (da mais usada para a menos usada)
-    onlyCommunicationStats.sort(
-      (a, b) => int.parse(
-        b.totalTimeInForeground!,
-      ).compareTo(int.parse(a.totalTimeInForeground!)),
-    );
+    groupedUsage.forEach((pkg, timeMs) {
+      totalSumMs += timeMs; // Soma o valor máximo de cada app ao total do telemóvel
 
-    double somaFinal = onlyCommunicationStats.fold(0, (prev, element) {
-      return prev +
-          (int.parse(element.totalTimeInForeground ?? '0') / 1000 / 60);
+      if (communicationApps.contains(pkg)) {
+        commSumMs += timeMs;
+        commList.add(usage.UsageInfo(
+          packageName: pkg,
+          totalTimeInForeground: timeMs.toString(),
+        ));
+      }
     });
+
+    // 3. ORDENAR POR TEMPO (MAIS USADA PRIMEIRO)
+    commList.sort((a, b) => 
+      int.parse(b.totalTimeInForeground!).compareTo(int.parse(a.totalTimeInForeground!)));
+
     setState(() {
-      _usageStats =
-          onlyCommunicationStats; // Agora a lista só tem apps de comunicação
-      _totalCommunicationMinutes = somaFinal;
+      _usageStats = commList;
+      _totalCommunicationMinutes = commSumMs / 1000 / 60;
+      _totalPhoneMinutes = totalSumMs / 1000 / 60;
     });
   }
+
+String _formatTime(double totalMinutes) {
+  if (totalMinutes < 1) {
+    int seconds = (totalMinutes * 60).toInt();
+    return "${seconds}s";
+  }
+  
+  int hours = totalMinutes ~/ 60; // Divisão inteira para as horas
+  int minutes = (totalMinutes % 60).toInt(); // O resto são os minutos
+
+  if (hours > 0) {
+    return "${hours}h ${minutes}min";
+  } else {
+    return "${minutes}min";
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // CARD DE RESUMO DUPLO
         Card(
           margin: const EdgeInsets.all(10),
-          color: Colors.blue.shade50,
-          child: ListTile(
-            leading: const Icon(Icons.forum, color: Colors.blue),
-            title: const Text("Tempo de Comunicação (Hoje)"),
-            subtitle: Text(
-              "Total: ${_totalCommunicationMinutes.toStringAsFixed(1)} minutos",
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              children: [
+                _buildSummaryRow("Uso Total Hoje", _totalPhoneMinutes, Icons.phone_android, Colors.blueGrey),
+                const Divider(),
+                _buildSummaryRow("Comunicação", _totalCommunicationMinutes, Icons.forum, Colors.blue),
+              ],
             ),
           ),
         ),
+        
         ListTile(
-          title: const Text(
-            "Detalhes por App",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          trailing: IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _getUsage,
-          ),
+          title: const Text("Detalhes por App (Comunicação)", style: TextStyle(fontWeight: FontWeight.bold)),
+          trailing: IconButton(icon: const Icon(Icons.refresh), onPressed: _getUsage),
         ),
+
         Expanded(
           child: _usageStats.isEmpty
-              ? const Center(child: Text("Sem dados ou permissão negada"))
+              ? const Center(child: Text("Sem dados de comunicação hoje"))
               : ListView.builder(
-                  itemCount: _usageStats.length > 15 ? 15 : _usageStats.length,
+                  itemCount: _usageStats.length,
                   itemBuilder: (context, index) {
                     final info = _usageStats[index];
-                    double minutes =
-                        int.parse(info.totalTimeInForeground!) / 1000 / 60;
+                    double minutes = int.parse(info.totalTimeInForeground!) / 1000 / 60;
 
                     return ListTile(
                       leading: const Icon(Icons.android, color: Colors.green),
-                      title: Text(info.packageName!.split('.').last),
-                      subtitle: Text(
-                        info.packageName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text("${minutes.toStringAsFixed(1)}min"),
+                      title: Text(info.packageName!.split('.').last.toUpperCase()),
+                      subtitle: Text(info.packageName!, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      trailing: Text(_formatTime(minutes), style: const TextStyle(fontWeight: FontWeight.bold)),
                     );
                   },
                 ),
+        ),
+      ],
+    );
+  }
+
+  // Widget auxiliar para as linhas de resumo
+  Widget _buildSummaryRow(String label, double value, IconData icon, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 10),
+            Text(label, style: const TextStyle(fontSize: 16)),
+          ],
+        ),
+        Text(
+          "${value.toStringAsFixed(1)} min",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
         ),
       ],
     );

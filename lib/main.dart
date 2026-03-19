@@ -195,11 +195,11 @@ class _MyHomePageState extends State<MyHomePage> {
             Padding(
               padding: EdgeInsets.all(16.0),
               child: MotionDetection(),
-            ),
+            ),*/
             Padding(
               padding: EdgeInsets.all(8.0),
               child: usage.UsageStatsState(),
-            ), */
+            ), 
             Padding(
               padding: EdgeInsets.all(8.0),
               child: TypingSpeed(),
