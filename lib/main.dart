@@ -8,6 +8,7 @@ import 'package:steps_health/distance_traveled.dart';
 
 import 'package:steps_health/gps_screen.dart';
 import 'package:steps_health/activityType/motion_detection.dart';
+import 'package:steps_health/light_meter.dart';
 import 'package:steps_health/stats_usage.dart' as usage;
 import 'package:steps_health/step_counter_screen.dart';
 import 'package:steps_health/typing_speed.dart';
@@ -196,13 +197,17 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.all(16.0),
               child: MotionDetection(),
             ),*/
-            Padding(
+            /* Padding(
               padding: EdgeInsets.all(8.0),
               child: usage.UsageStatsState(),
             ), 
             Padding(
               padding: EdgeInsets.all(8.0),
               child: TypingSpeed(),
+            ), */
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: LightMeter(),
             ),
           ],
         ),
