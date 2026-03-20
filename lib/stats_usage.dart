@@ -14,10 +14,18 @@ class _UsageStatsStateState extends State<UsageStatsState> {
   double _totalCommunicationMinutes = 0.0;
   double _totalPhoneMinutes = 0.0;
 
+  int _unlockCount = 0;
+  int _interactionCount = 0;
+
   @override
   void initState() {
     super.initState();
-    _getUsage();
+    _refreshAllStats();
+  }
+
+  Future<void> _refreshAllStats() async {
+    await _getUsage();
+    await _getUnlocks();
   }
 
   Future<void> _getUsage() async {
@@ -83,6 +91,55 @@ class _UsageStatsStateState extends State<UsageStatsState> {
     });
   }
 
+
+  Future<void> _getUnlocks() async{
+
+    DateTime now = DateTime.now();
+    DateTime startDate = DateTime(now.year, now.month, now.day);
+    DateTime endDate = now;
+
+
+   try {
+    List<usage.EventUsageInfo> events = await usage.UsageStats.queryEvents(startDate, endDate);
+
+    if (events.isEmpty) {
+      print("Aviso: O sistema ainda não devolveu eventos hoje.");
+      return; // Não atualiza para 0 se a lista vier vazia por erro
+    }
+
+    
+    // Usamos um Set para guardar timestamps e evitar contar o mesmo desbloqueio 
+    // que gera múltiplos eventos no mesmo segundo
+    Set<int> uniqueUnlocks = {};
+    Set<int> uniqueInteractions = {};
+
+
+    for (var event in events) {
+      // 18 = Ecra desbloqueado
+      if (event.eventType == "18") {
+        int timestamp = int.parse(event.timeStamp!) ~/ 1000; 
+        uniqueUnlocks.add(timestamp);
+
+      // 15 = Ecra ligou
+      }else if(event.eventType == "15"){
+        int timestamp = int.parse(event.timeStamp!) ~/ 1000; 
+        uniqueInteractions.add(timestamp);
+      }
+    }
+
+    
+    setState(() {
+      // Se o Set for muito grande (devido ao evento 7), 
+      // podemos contar apenas eventos com diferença de pelo menos 2 segundos
+      _unlockCount = uniqueUnlocks.length;
+      _interactionCount = uniqueInteractions.length;
+    });
+  } catch (e) {
+    print("Erro ao ler desbloqueios: $e");
+  }
+  }
+
+
 String _formatTime(double totalMinutes) {
   if (totalMinutes < 1) {
     int seconds = (totalMinutes * 60).toInt();
@@ -142,6 +199,35 @@ String _formatTime(double totalMinutes) {
                   },
                 ),
         ),
+        Card(
+          color: Colors.blue[50],
+          elevation: 5,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    const Text("Unlocks", style: TextStyle(fontSize: 16)),
+                    Text("$_unlockCount", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange))
+                  ],
+                ),
+              ),
+              const Divider(),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    const Text("Interactions", style: TextStyle(fontSize: 16)),
+                    Text("$_interactionCount",style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange))
+                  ],
+                ),
+              )
+            ],
+          ),
+        )
       ],
     );
   }
@@ -152,6 +238,7 @@ String _formatTime(double totalMinutes) {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 10),
@@ -159,7 +246,7 @@ String _formatTime(double totalMinutes) {
           ],
         ),
         Text(
-          "${value.toStringAsFixed(1)} min",
+          _formatTime(value),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
         ),
       ],
