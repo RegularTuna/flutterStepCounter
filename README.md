@@ -56,10 +56,16 @@ https://pub.dev/packages/sqflite //local database
 
 <h2>Time spent on the phone and in communication Apps</h2>
 Providing records of the time spent in communication apps (apps needed to be indentified by us).
-
+  
 <ins>Libraries used:</ins>  
 https://pub.dev/packages/usage_stats_new
 
+<h2>Count phone unlocks and pickups</h2>  
+Counting the amount of time the user unlocked the phone or interacted with the screen locked.
+
+<ins>Libraries used:</ins>  
+https://pub.dev/packages/usage_stats_new
+  
 <h2>Measure ambient light</h2>
 Measures the ambient light in lux when a button is clicked
 
